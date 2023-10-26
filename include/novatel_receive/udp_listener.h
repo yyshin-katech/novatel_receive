@@ -22,9 +22,11 @@
 #include <ros/ros.h>
 #include <can_msgs/Frame.h>
 
+#include <novatel_receive/novatel_msgid.h>
+
 #define UDP_PORT 3003
-#define UDP_IP
-#define PACKET_SIZE 300
+#define UDP_IP "192.168.10.110"
+#define PACKET_SIZE 1000
 
 typedef enum {
     UNKNOWN = 20,
@@ -109,7 +111,18 @@ typedef enum {
     USER = 63
 } DATUM_ID_t;
 
-typedef struct CPT7_header {
+union DoubleToBytes {
+    double doubleValue;
+    uint8_t bytes[8];
+};
+union FloatToBytes {
+    float floatValue;
+    uint8_t bytes[4];
+};
+
+#pragma pack(push, 1)
+
+typedef struct sCPT7_header {
     uint8_t     Sync1;
     uint8_t     Sync2;
     uint8_t     Sync3;
@@ -128,12 +141,16 @@ typedef struct CPT7_header {
     uint16_t    sw_version;
 } CPT7_header_t;
 
-typedef struct BESTPOS {
+typedef struct sBESTPOS {
+    CPT7_header_t   header;
     Solution_Status_t sol_stat;
     Position_Velocity_Type_t pos_type;
-    double      lat;
-    double      lon;
-    double      hgt;
+    //double      lat;
+    //double      lon;
+    //double      hgt;
+    DoubleToBytes lat;
+    DoubleToBytes lon;
+    DoubleToBytes hgt;
     float       undulation;
     DATUM_ID_t  datum_id;
     float       lat_sigma;
@@ -153,6 +170,89 @@ typedef struct BESTPOS {
     uint8_t     CRC[4];
 } BESTPOS_t;
 
+typedef struct sINSPVAS {
+    CPT7_header_t   header;
+    uint32_t        Week;
+    double          Seconds;
+    double          Latitude;
+    double          Longitude;
+    double          Height;
+    double          North_Velocity;
+    double          East_Velocity;
+    double          Up_Velocity;
+    double          Roll;
+    double          Pitch;
+    DoubleToBytes   Azimuth;
+    uint32_t        Status;
+} INSPVAS_t;
+
+typedef struct sCORRIMUS {
+    CPT7_header_t   header;
+    uint32_t        IMUDataCount;
+    double          PitchRate;
+    double          RollRate;
+    DoubleToBytes   YawRate;
+    double          LateralAcc;
+    double          LongitudinalAcc;
+    double          VerticalAcc;
+    float           Reserved0;
+    uint32_t        Reserved1;
+    uint8_t         CRC[4];
+} CORRIMUS_t;
+
+typedef struct sHEADING2 {
+    CPT7_header_t   header;
+    uint32_t        sol_stat;
+    uint32_t        pos_type;
+    float           length;
+    FloatToBytes    heading;
+    float           pitch;
+    float           Reserved0;
+    float           hdg_std_dev;
+    float           ptch_std_dev;
+    uint8_t         rover_stn_ID[4];
+    uint8_t         Master_stn_ID[4];
+    uint8_t         SVs;
+    uint8_t         solnSVs;
+    uint8_t         obs;
+    uint8_t         multi;
+    uint8_t         sol_source;
+    uint8_t         ext_sol_stat;
+    uint8_t         Galileo_and_BeiDou_sig_mask;
+    uint8_t         GPS_and_GLONASS_sig_mask;
+    uint8_t         CRC[4];
+} HEADING2_t;
+
+typedef struct sBESTUTM {
+    CPT7_header_t   header;
+    Solution_Status_t sol_stat;
+    Position_Velocity_Type_t pos_type;
+    uint32_t            zone_number;
+    uint32_t            zone;
+    DoubleToBytes       northing;
+    DoubleToBytes       easting;
+    double              hgt;
+    float               undulation;
+    DATUM_ID_t          datum_id;
+    float               N_sigma;
+    float               E_sigma;
+    float               ght_sigma;
+    uint8_t             std_id[4];
+    float               diff_age;
+    float               sol_age;
+    uint8_t             SVs;
+    uint8_t             solnSVs;
+    uint8_t             ggL1;
+    uint8_t             solnMultiSV;
+    uint8_t             Reserved;
+    uint8_t             ext_sol_stat;
+    uint8_t             Galileo_and_BeiDou_sig_mask;
+    uint8_t             GPS_and_GLONASS_sig_mask;
+    uint8_t             CRC[4];
+} BESTUTM_t;
+
+#pragma pack(pop)
+
 static int sock;
 
 class UDP_receiver{
@@ -164,8 +264,14 @@ class UDP_receiver{
 
         ros::Publisher pub;
 
-        CPT7_header_t structCPT7_header;
-        BESTPOS_t structBESTPOS;
+        //CPT7_header_t structCPT7_header;
+        BESTPOS_t msg_BESTPOS;
+        INSPVAS_t msg_INSPVAS;
+        CORRIMUS_t  msg_CORRIMUS;
+        BESTUTM_t   msg_BESTUTM;
+        HEADING2_t  msg_HEADING2;
+
+        can_msgs::Frame can_msg;
 
         struct sockaddr_in  ServerInfo;
         struct sockaddr_in  FromClient;
@@ -190,10 +296,12 @@ class UDP_receiver{
         int optLen = sizeof(optVal);
 
         void loop();
+        
+        void Parser();
 
         static void end(int sig);
 
-        std::tuple<CPT7_header_t, BESTPOS_t> CPT7_BESTPOS;
+        //std::tuple<CPT7_header_t, BESTPOS_t> CPT7_BESTPOS;
 };
 
 #endif 

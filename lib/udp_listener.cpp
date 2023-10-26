@@ -10,6 +10,8 @@ UDP_receiver::UDP_receiver()
     memset(&ServerInfo, 0, sizeof(ServerInfo));
     //memset((char *)&FromClient, 0, sizeof(FromClient));
 
+    memset(&msg_BESTPOS, 0, sizeof(BESTPOS_t));
+
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock < 0)
     {
@@ -58,9 +60,6 @@ void UDP_receiver::end(int sig)
 
 void UDP_receiver::loop()
 {
-    int i = 0;
-    can_msgs::Frame can_msg;
-
     signal(SIGINT, end);
 
     while(ros::ok())
@@ -78,16 +77,156 @@ void UDP_receiver::loop()
         }
         else
         {
-            ROS_INFO("RECV SiZE: %d", Recv_Size);
+            //ROS_INFO("RECV SiZE: %d", Recv_Size);
+            Parser();
         }
 
-        structCPT7_header.MessageID = (uint16_t)Buffer_recv[4] + (((uint16_t)Buffer_recv[5]) << 8);
-        ROS_INFO("Recv Message ID : %d", structCPT7_header.MessageID);
+    }
+}
 
-        can_msg.header.stamp = ros::Time::now();
-
+void UDP_receiver::Parser()
+{
+    uint16_t temp_id;
     
+    temp_id = (uint16_t)Buffer_recv[4] + ((((uint16_t)Buffer_recv[5]) << 8) & 0xFF00);
 
+    switch(temp_id)
+    {
+        case BESTPOS:
+        {
+            // void *p;
+            int i = 0;
 
+            // p = malloc(sizeof(BESTPOS_t));
+            // memcpy(p, Buffer_recv, sizeof(BESTPOS_t));
+            memcpy(&msg_BESTPOS, (BESTPOS_t *)Buffer_recv, sizeof(BESTPOS_t));
+         
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "BESTPOS_LAT";
+
+            can_msg.id = 0x100;
+            can_msg.dlc = 8;
+            for(i=0;i<8;i++)
+            {
+                can_msg.data[i] = msg_BESTPOS.lat.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "BESTPOS_LON";
+
+            can_msg.id = 0x101;
+            can_msg.dlc = 8;
+            for(i=0;i<8;i++)
+            {
+                can_msg.data[i] = msg_BESTPOS.lon.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+            // free(p);
+            break;
+        }
+        case CORRIMUS:
+        {
+            int i = 0;
+            
+            memcpy(&msg_CORRIMUS, (CORRIMUS_t *)Buffer_recv, sizeof(CORRIMUS_t));
+
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "INSPVAS_YAWRATE";
+
+            can_msg.id = 0x106;
+            can_msg.dlc = 8;
+            for(i=0;i<4;i++)
+            {
+                can_msg.data[i] = msg_CORRIMUS.YawRate.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+            break;
+        }
+        case INSPVAS:
+        {
+            int i = 0;
+            
+            memcpy(&msg_INSPVAS, (INSPVAS_t *)Buffer_recv, sizeof(INSPVAS_t));
+
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "INSPVAS_AZIMUTH";
+
+            can_msg.id = 0x105;
+            can_msg.dlc = 8;
+            for(i=0;i<4;i++)
+            {
+                can_msg.data[i] = msg_INSPVAS.Azimuth.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+            break;
+        }
+        case HEADING2:
+        {
+            int i = 0;
+            
+            memcpy(&msg_HEADING2, (HEADING2_t *)Buffer_recv, sizeof(HEADING2_t));
+
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "HEADING2_HEADING";
+
+            can_msg.id = 0x104;
+            can_msg.dlc = 4;
+            for(i=0;i<4;i++)
+            {
+                can_msg.data[i] = msg_HEADING2.heading.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+
+            break;
+        }
+        case BESTUTM:
+        {
+            int i = 0;
+
+            memcpy(&msg_BESTUTM, (BESTUTM_t *)Buffer_recv, sizeof(BESTUTM_t));
+
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "BESTUTM_NORTH";
+
+            can_msg.id = 0x102;
+            can_msg.dlc = 8;
+            for(i=0;i<8;i++)
+            {
+                can_msg.data[i] = msg_BESTUTM.northing.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+
+            can_msg.header.seq += 1;
+            can_msg.header.stamp = ros::Time::now();
+            can_msg.header.frame_id = "BESTUTM_EAST";
+
+            can_msg.id = 0x103;
+            can_msg.dlc = 8;
+            for(i=0;i<8;i++)
+            {
+                can_msg.data[i] = msg_BESTUTM.easting.bytes[i];
+            }
+            
+            pub.publish(can_msg);
+
+            ROS_INFO("%lf %lf", msg_BESTUTM.northing.doubleValue, msg_BESTUTM.easting.doubleValue);
+            break;
+        }
+        default:
+            break;
+            
     }
 }
