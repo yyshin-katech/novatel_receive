@@ -25,6 +25,7 @@
 #include <novatel_receive/novatel_msgid.h>
 
 #define UDP_PORT 3003
+#define NMEA_PORT 3002
 // #define UDP_IP "192.168.10.110"
 #define UDP_IP "192.168.1.195"
 #define PACKET_SIZE 1000
@@ -120,8 +121,6 @@ union FloatToBytes {
     float floatValue;
     uint8_t bytes[4];
 };
-
-
 
 typedef struct sCPT7_header {
     uint8_t     Sync1;
