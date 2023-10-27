@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <node pkg="novatel_receive" type="novatel_receive_node" name="novatel_receive" output="screen" />
+    
+</launch>
