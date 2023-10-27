@@ -1,4 +1,4 @@
-// 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
+// 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
 
 #ifndef _UDP_LISTENER_H_
 #define _UDP_LISTENER_H_
@@ -25,7 +25,8 @@
 #include <novatel_receive/novatel_msgid.h>
 
 #define UDP_PORT 3003
-#define UDP_IP "192.168.10.110"
+// #define UDP_IP "192.168.10.110"
+#define UDP_IP "192.168.1.195"
 #define PACKET_SIZE 1000
 
 typedef enum {
@@ -120,7 +121,7 @@ union FloatToBytes {
     uint8_t bytes[4];
 };
 
-#pragma pack(push, 1)
+
 
 typedef struct sCPT7_header {
     uint8_t     Sync1;
@@ -133,21 +134,31 @@ typedef struct sCPT7_header {
     uint16_t    Message_Length;
     uint16_t    Sequence;
     uint8_t     Idle_Time;
-    GPS_Reference_Time_Status_t     Time_Status;
+    uint8_t     Time_Status;
     uint16_t    Week;
     uint32_t    ms;
     uint32_t    Receiver_Status;
     uint16_t    Reserved;
     uint16_t    sw_version;
-} CPT7_header_t;
+} __attribute__((packed)) CPT7_header_t;
+
+typedef struct sCPT7_shortheader {
+    uint8_t     Sync1;
+    uint8_t     Sync2;
+    uint8_t     Sync3;
+    uint8_t     Message_Length;
+    uint16_t    MessageID;
+    uint16_t    Week_Number;
+    uint32_t    Miliseconds;
+} __attribute__((packed)) CPT7_shortheader_t;
 
 typedef struct sBESTPOS {
     CPT7_header_t   header;
-    Solution_Status_t sol_stat;
-    Position_Velocity_Type_t pos_type;
-    //double      lat;
-    //double      lon;
-    //double      hgt;
+    uint8_t sol_stat[4];
+    uint8_t pos_type[4];
+    // double      lat;
+    // double      lon;
+    // double      hgt;
     DoubleToBytes lat;
     DoubleToBytes lon;
     DoubleToBytes hgt;
@@ -168,10 +179,10 @@ typedef struct sBESTPOS {
     uint8_t     Galileo_and_BeiDou_sig_mask;
     uint8_t     GPS_and_GLONASS_sig_mask;
     uint8_t     CRC[4];
-} BESTPOS_t;
+} __attribute__((packed)) BESTPOS_t;
 
 typedef struct sINSPVAS {
-    CPT7_header_t   header;
+    CPT7_shortheader_t   header;
     uint32_t        Week;
     double          Seconds;
     double          Latitude;
@@ -184,10 +195,10 @@ typedef struct sINSPVAS {
     double          Pitch;
     DoubleToBytes   Azimuth;
     uint32_t        Status;
-} INSPVAS_t;
+} __attribute__((packed)) INSPVAS_t;
 
 typedef struct sCORRIMUS {
-    CPT7_header_t   header;
+    CPT7_shortheader_t   header;
     uint32_t        IMUDataCount;
     double          PitchRate;
     double          RollRate;
@@ -198,7 +209,7 @@ typedef struct sCORRIMUS {
     float           Reserved0;
     uint32_t        Reserved1;
     uint8_t         CRC[4];
-} CORRIMUS_t;
+} __attribute__((packed)) CORRIMUS_t;
 
 typedef struct sHEADING2 {
     CPT7_header_t   header;
@@ -221,7 +232,7 @@ typedef struct sHEADING2 {
     uint8_t         Galileo_and_BeiDou_sig_mask;
     uint8_t         GPS_and_GLONASS_sig_mask;
     uint8_t         CRC[4];
-} HEADING2_t;
+} __attribute__((packed)) HEADING2_t;
 
 typedef struct sBESTUTM {
     CPT7_header_t   header;
@@ -249,9 +260,7 @@ typedef struct sBESTUTM {
     uint8_t             Galileo_and_BeiDou_sig_mask;
     uint8_t             GPS_and_GLONASS_sig_mask;
     uint8_t             CRC[4];
-} BESTUTM_t;
-
-#pragma pack(pop)
+} __attribute__((packed)) BESTUTM_t;
 
 static int sock;
 
@@ -288,7 +297,7 @@ class UDP_receiver{
 
         char bufData[PACKET_SIZE] = {0, };
         char Buffer[PACKET_SIZE] = {0, };
-        char Buffer_recv[PACKET_SIZE] = {0, };
+        uint8_t Buffer_recv[PACKET_SIZE] = {0, };
 
         short ServerPort = UDP_PORT;
 

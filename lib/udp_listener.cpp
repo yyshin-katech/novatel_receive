@@ -78,6 +78,7 @@ void UDP_receiver::loop()
         else
         {
             //ROS_INFO("RECV SiZE: %d", Recv_Size);
+
             Parser();
         }
 
@@ -88,8 +89,11 @@ void UDP_receiver::Parser()
 {
     uint16_t temp_id;
     
-    temp_id = (uint16_t)Buffer_recv[4] + ((((uint16_t)Buffer_recv[5]) << 8) & 0xFF00);
-
+    temp_id = (uint16_t)Buffer_recv[4];
+    temp_id |= ((((uint16_t)Buffer_recv[5]) << 8) & 0xFF00);
+    // ROS_INFO("header %02x %02x %02x", Buffer_recv[0], Buffer_recv[1], Buffer_recv[2]);
+    ROS_INFO("ID %02x %02x, %x dec: %d", Buffer_recv[4], Buffer_recv[5], temp_id, temp_id);
+    
     switch(temp_id)
     {
         case BESTPOS:
@@ -100,7 +104,8 @@ void UDP_receiver::Parser()
             // p = malloc(sizeof(BESTPOS_t));
             // memcpy(p, Buffer_recv, sizeof(BESTPOS_t));
             memcpy(&msg_BESTPOS, (BESTPOS_t *)Buffer_recv, sizeof(BESTPOS_t));
-         
+            // ROS_INFO("%2x %2x", Buffer_recv[36], Buffer_recv[37]);
+
             can_msg.header.seq += 1;
             can_msg.header.stamp = ros::Time::now();
             can_msg.header.frame_id = "BESTPOS_LAT";
@@ -127,6 +132,8 @@ void UDP_receiver::Parser()
             
             pub.publish(can_msg);
             // free(p);
+            
+            
             break;
         }
         case CORRIMUS:
@@ -165,7 +172,7 @@ void UDP_receiver::Parser()
             {
                 can_msg.data[i] = msg_INSPVAS.Azimuth.bytes[i];
             }
-            
+            ROS_INFO("Azimuth: %.2lf", msg_INSPVAS.Azimuth.doubleValue);
             pub.publish(can_msg);
             break;
         }
