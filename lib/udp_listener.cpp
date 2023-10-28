@@ -14,6 +14,12 @@ UDP_receiver::UDP_receiver()
 
     memset(&msg_BESTPOS, 0, sizeof(BESTPOS_t));
 
+    memset(&can_msg, 0, sizeof(can_msg));
+    memset(&can_msg_0x110, 0, sizeof(can_msg_0x110));
+    memset(&can_msg_0x110, 0, sizeof(can_msg_0x111));
+    memset(&can_msg_0x110, 0, sizeof(can_msg_0x112));
+    memset(&can_msg_0x110, 0, sizeof(can_msg_0x113));
+    
     sock = socket(AF_INET, SOCK_DGRAM, 0);
     nmea_sock = socket(AF_INET, SOCK_DGRAM, 0);
 
@@ -143,6 +149,8 @@ void UDP_receiver::NMEA_Parser()
 {
     char NMEAbuf[200];
     char *token;
+    DoubleToBytes dummy;
+    int i = 0;
 
     memcpy(NMEAbuf, Buffer_recv, 200);
     token = strtok(NMEAbuf, ",*"); //$GPRMC
@@ -202,6 +210,70 @@ void UDP_receiver::NMEA_Parser()
     msg_GPRMC.d_speed_kn = atof(msg_GPRMC.speed_kn);
     msg_GPRMC.d_speed_kph = msg_GPRMC.d_speed_kn * KNOT2KPH;
     msg_GPRMC.d_track_true = atof(msg_GPRMC.track_true);
+
+    can_msg_0x110.header.seq++;
+    can_msg_0x110.header.stamp = ros::Time::now();
+    can_msg_0x110.header.frame_id = "GPRMC_LAT";
+
+    can_msg_0x110.id = 0x110;
+    can_msg_0x110.dlc = 8;
+    
+    dummy.doubleValue = msg_GPRMC.d_lat;
+
+    for(i=0;i<8;i++)
+    {
+        can_msg_0x110.data[i] = dummy.bytes[i];
+    }
+    
+    pub.publish(can_msg_0x110);
+
+    can_msg_0x111.header.seq++;
+    can_msg_0x111.header.stamp = ros::Time::now();
+    can_msg_0x111.header.frame_id = "GPRMC_LON";
+
+    can_msg_0x111.id = 0x111;
+    can_msg_0x111.dlc = 8;
+    
+    dummy.doubleValue = msg_GPRMC.d_lon;
+
+    for(i=0;i<8;i++)
+    {
+        can_msg_0x111.data[i] = dummy.bytes[i];
+    }
+    
+    pub.publish(can_msg_0x111);
+
+    can_msg_0x112.header.seq++;
+    can_msg_0x112.header.stamp = ros::Time::now();
+    can_msg_0x112.header.frame_id = "GPRMC_SPEED";
+
+    can_msg_0x112.id = 0x112;
+    can_msg_0x112.dlc = 8;
+    
+    dummy.doubleValue = msg_GPRMC.d_speed_kph;
+
+    for(i=0;i<8;i++)
+    {
+        can_msg_0x112.data[i] = dummy.bytes[i];
+    }
+    
+    pub.publish(can_msg_0x112);
+
+    can_msg_0x113.header.seq++;
+    can_msg_0x113.header.stamp = ros::Time::now();
+    can_msg_0x113.header.frame_id = "GPRMC_HEADING";
+
+    can_msg_0x113.id = 0x113;
+    can_msg_0x113.dlc = 8;
+    
+    dummy.doubleValue = msg_GPRMC.d_track_true;
+
+    for(i=0;i<8;i++)
+    {
+        can_msg_0x113.data[i] = dummy.bytes[i];
+    }
+    
+    pub.publish(can_msg_0x113);
 
     ROS_INFO("%lf", msg_GPRMC.d_utc);
     ROS_INFO("%lf", msg_GPRMC.d_lat);

@@ -314,6 +314,10 @@ class UDP_receiver{
         NMEA_GPRMC_t msg_GPRMC;
 
         can_msgs::Frame can_msg;
+        can_msgs::Frame can_msg_0x110;
+        can_msgs::Frame can_msg_0x111;
+        can_msgs::Frame can_msg_0x112;
+        can_msgs::Frame can_msg_0x113;
 
         struct sockaddr_in  ServerInfo;
         struct sockaddr_in  NMEAServerInfo;

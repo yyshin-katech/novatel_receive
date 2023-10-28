@@ -8,7 +8,7 @@ int main(int argc, char **argv)
 
     UDP_receiver udp_receiver;
 
-    udp_receiver.pub = node.advertise<can_msgs::Frame>("/can_tx", 1);
+    udp_receiver.pub = node.advertise<can_msgs::Frame>("/can_rx", 1000);
 
     udp_receiver.loop();
 
