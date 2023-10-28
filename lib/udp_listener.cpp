@@ -149,79 +149,65 @@ void UDP_receiver::NMEA_Parser()
     ROS_INFO("%s", token); 
     
     token = strtok(NULL, ",*"); //utc
-    // memcpy(msg_GPRMC.utc, token, sizeof(token));
-    // msg_GPRMC.utc[sizeof(token)] = NULL;
     msg_GPRMC.utc = token;
-    ROS_INFO("%s", msg_GPRMC.utc);
+    // ROS_INFO("%s", msg_GPRMC.utc);
 
     token = strtok(NULL, ",*"); //pos_status
     msg_GPRMC.pos_status = token[0];
-    ROS_INFO("%c", msg_GPRMC.pos_status);
+    // ROS_INFO("%c", msg_GPRMC.pos_status);
 
     token = strtok(NULL, ",*"); //lat
-    // memcpy(msg_GPRMC.lat, token, sizeof(token));
-    // msg_GPRMC.lat[sizeof(token)] = NULL;
     msg_GPRMC.lat = token;
-    ROS_INFO("%s", msg_GPRMC.lat);
+    // ROS_INFO("%s", msg_GPRMC.lat);
     
     token = strtok(NULL, ",*"); //utc
-    // memcpy(msg_GPRMC.lat_dir, token, sizeof(token));
     msg_GPRMC.lat_dir = token[0];
-    ROS_INFO("%c", msg_GPRMC.lat_dir);
+    // ROS_INFO("%c", msg_GPRMC.lat_dir);
 
     token = strtok(NULL, ",*"); //lat
-    // memcpy(msg_GPRMC.lon, token, sizeof(token));
-    // msg_GPRMC.lon[sizeof(token)] = NULL;
     msg_GPRMC.lon = token;
-    ROS_INFO("%s", msg_GPRMC.lon);
+    // ROS_INFO("%s", msg_GPRMC.lon);
     
     token = strtok(NULL, ",*"); //utc
-    // memcpy(msg_GPRMC.lon_dir, token, sizeof(token));
     msg_GPRMC.lon_dir = token[0];
-    ROS_INFO("%c", msg_GPRMC.lon_dir);
+    // ROS_INFO("%c", msg_GPRMC.lon_dir);
 
-    token = strtok(NULL, ",*"); //lat
-    // memcpy(msg_GPRMC.speed_kn, token, sizeof(token));
-    // msg_GPRMC.speed_kn[sizeof(token)] = NULL;
+    token = strtok(NULL, ",*"); //lat    
     msg_GPRMC.speed_kn = token;
-    ROS_INFO("%s", msg_GPRMC.speed_kn);
+    // ROS_INFO("%s", msg_GPRMC.speed_kn);
 
     token = strtok(NULL, ",*"); //lat
-    // memcpy(msg_GPRMC.track_true, token, sizeof(token));
-    // msg_GPRMC.track_true[sizeof(token)] = NULL;
     msg_GPRMC.track_true = token;
-    ROS_INFO("%s", msg_GPRMC.track_true);
+    // ROS_INFO("%s", msg_GPRMC.track_true);
 
     token = strtok(NULL, ",*"); //lat
-    // memcpy(msg_GPRMC.date, token, sizeof(token));
-    // msg_GPRMC.date[sizeof(token)] = NULL;
     msg_GPRMC.date = token;
-    ROS_INFO("%s", msg_GPRMC.date);
+    // ROS_INFO("%s", msg_GPRMC.date);
     
     token = strtok(NULL, ",*"); //lat
-    // memcpy(msg_GPRMC.mag_var, token, sizeof(token));
-    // msg_GPRMC.mag_var[sizeof(token)] = NULL;
     msg_GPRMC.mag_var = token;
-    ROS_INFO("%s", msg_GPRMC.mag_var);
+    // ROS_INFO("%s", msg_GPRMC.mag_var);
 
     token = strtok(NULL, ",*"); //lat
     msg_GPRMC.var_dir = token[0];
-    ROS_INFO("%c", msg_GPRMC.var_dir);
+    // ROS_INFO("%c", msg_GPRMC.var_dir);
 
     token = strtok(NULL, ",*"); //lat
     msg_GPRMC.mode_ind = token[0];
-    ROS_INFO("%c", msg_GPRMC.mode_ind);
+    // ROS_INFO("%c", msg_GPRMC.mode_ind);
 
     msg_GPRMC.d_utc = atof(msg_GPRMC.utc);
     msg_GPRMC.d_lat = atof(msg_GPRMC.lat);
     msg_GPRMC.d_lon = atof(msg_GPRMC.lon);
     msg_GPRMC.d_speed_kn = atof(msg_GPRMC.speed_kn);
+    msg_GPRMC.d_speed_kph = msg_GPRMC.d_speed_kn * KNOT2KPH;
     msg_GPRMC.d_track_true = atof(msg_GPRMC.track_true);
 
     ROS_INFO("%lf", msg_GPRMC.d_utc);
     ROS_INFO("%lf", msg_GPRMC.d_lat);
     ROS_INFO("%lf", msg_GPRMC.d_lon);
     ROS_INFO("%lf", msg_GPRMC.d_speed_kn);
+    ROS_INFO("%lf", msg_GPRMC.d_speed_kph);
     ROS_INFO("%lf", msg_GPRMC.d_track_true);
 }
 

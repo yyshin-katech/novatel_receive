@@ -31,6 +31,8 @@
 #define UDP_IP "192.168.1.195"
 #define PACKET_SIZE 1000
 
+#define KNOT2KPH 1.85184
+
 typedef enum {
     UNKNOWN = 20,
     APPROXIMATE = 60,
@@ -148,6 +150,7 @@ typedef struct sNMEA_GPRMC {
     double      d_lat;
     double      d_lon;
     double      d_speed_kn;
+    double      d_speed_kph;
     double      d_track_true;
 } NMEA_GPRMC_t;
 
@@ -337,7 +340,7 @@ class UDP_receiver{
         
         void Parser();
         void NMEA_Parser();
-        
+
         static void end(int sig);
 
         //std::tuple<CPT7_header_t, BESTPOS_t> CPT7_BESTPOS;
