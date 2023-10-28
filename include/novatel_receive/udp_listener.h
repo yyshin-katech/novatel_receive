@@ -11,10 +11,11 @@
 #include <stdio.h>
 #include <cerrno>
 #include <cstring>
-
+#include <sstream>
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
@@ -121,6 +122,34 @@ union FloatToBytes {
     float floatValue;
     uint8_t bytes[4];
 };
+
+typedef struct sNMEA_GPRMC {
+    // uint8_t     utc[10];
+    char     *utc;
+    uint8_t     pos_status; //A : valid, V : invalid
+    // uint8_t     lat[14];
+    char     *lat;
+    uint8_t     lat_dir;
+    // uint8_t     lon[15];
+    char     *lon;
+    uint8_t     lon_dir;
+    // uint8_t     speed_kn[5];
+    char     *speed_kn;
+    // uint8_t     track_true[5];
+    char     *track_true;
+    // uint8_t     date[6];
+    char     *date;
+    // uint8_t     mag_var[5];
+    char     *mag_var;
+    uint8_t     var_dir;
+    uint8_t     mode_ind;
+
+    double      d_utc;
+    double      d_lat;
+    double      d_lon;
+    double      d_speed_kn;
+    double      d_track_true;
+} NMEA_GPRMC_t;
 
 typedef struct sCPT7_header {
     uint8_t     Sync1;
@@ -262,6 +291,7 @@ typedef struct sBESTUTM {
 } __attribute__((packed)) BESTUTM_t;
 
 static int sock;
+static int nmea_sock;
 
 class UDP_receiver{
 
@@ -278,10 +308,12 @@ class UDP_receiver{
         CORRIMUS_t  msg_CORRIMUS;
         BESTUTM_t   msg_BESTUTM;
         HEADING2_t  msg_HEADING2;
+        NMEA_GPRMC_t msg_GPRMC;
 
         can_msgs::Frame can_msg;
 
         struct sockaddr_in  ServerInfo;
+        struct sockaddr_in  NMEAServerInfo;
         struct sockaddr_in  FromClient;
         
         socklen_t   rx_addr_len;
@@ -294,8 +326,6 @@ class UDP_receiver{
         int FromeClient_Size;
         int Recv_Size;
 
-        char bufData[PACKET_SIZE] = {0, };
-        char Buffer[PACKET_SIZE] = {0, };
         uint8_t Buffer_recv[PACKET_SIZE] = {0, };
 
         short ServerPort = UDP_PORT;
@@ -306,7 +336,8 @@ class UDP_receiver{
         void loop();
         
         void Parser();
-
+        void NMEA_Parser();
+        
         static void end(int sig);
 
         //std::tuple<CPT7_header_t, BESTPOS_t> CPT7_BESTPOS;

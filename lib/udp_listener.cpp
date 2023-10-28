@@ -8,22 +8,35 @@
 UDP_receiver::UDP_receiver()
 {
     memset(&ServerInfo, 0, sizeof(ServerInfo));
+    memset(&NMEAServerInfo, 0, sizeof(NMEAServerInfo));
+
     //memset((char *)&FromClient, 0, sizeof(FromClient));
 
     memset(&msg_BESTPOS, 0, sizeof(BESTPOS_t));
 
     sock = socket(AF_INET, SOCK_DGRAM, 0);
+    nmea_sock = socket(AF_INET, SOCK_DGRAM, 0);
+
     if(sock < 0)
     {
         perror("socket");
         exit(0);
     }
 
+    if(nmea_sock < 0)
+    {
+        perror("nmea socket");
+        exit(0);
+    }
+
     ServerInfo.sin_family = AF_INET;
     ServerInfo.sin_port = htons(UDP_PORT);
     ServerInfo.sin_addr.s_addr = htonl(INADDR_ANY);
-    // tv.tv_sec = 10;
-    // tv.tv_usec = 0;
+    NMEAServerInfo.sin_family = AF_INET;
+    NMEAServerInfo.sin_port = htons(NMEA_PORT);
+    NMEAServerInfo.sin_addr.s_addr = htonl(INADDR_ANY);
+    tv.tv_sec = 10;
+    tv.tv_usec = 0;
 
     setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (char *)&optVal, optLen);
 
@@ -32,12 +45,23 @@ UDP_receiver::UDP_receiver()
         perror("socket init error");
         exit(0);
     }
+    if(nmea_sock < 0)
+    {
+        perror("nmea socket init error");
+        exit(0);
+    }
 
     if(bind(sock, (struct sockaddr *)&ServerInfo, sizeof(ServerInfo)) < 0)
     {
         perror("Error Bind");
         exit(0);
     }
+    if(bind(nmea_sock, (struct sockaddr *)&NMEAServerInfo, sizeof(NMEAServerInfo)) < 0)
+    {
+        perror("NMEA Error Bind");
+        exit(0);
+    }
+    
 
     FD_ZERO(&readfds);
     FD_SET(sock, &readfds);
@@ -55,6 +79,10 @@ void UDP_receiver::end(int sig)
         int test = shutdown(sock, SHUT_RDWR);
         test = close(sock);
         std::cout << "socket end : " << test << std::endl;
+
+        int test2 = shutdown(nmea_sock, SHUT_RDWR);
+        test2 = close(nmea_sock);
+        std::cout << "socket end : " << test2 << std::endl;
     }
 }
 
@@ -68,41 +96,143 @@ void UDP_receiver::loop()
 
         memset(Buffer_recv, 0, PACKET_SIZE);
 
-        Recv_Size = recvfrom(sock, Buffer_recv, PACKET_SIZE, 0, (struct sockaddr *)&FromClient, (socklen_t*) &rx_addr_len);
+        FD_ZERO(&readfds);
 
-        if(Recv_Size < 0)
+        FD_SET(sock, &readfds);
+        FD_SET(nmea_sock, &readfds);
+
+        int activity = select(FD_SETSIZE, &readfds, NULL, NULL, &tv);
+
+        if((activity < 0) && (errno != EINTR))
         {
-            perror("recvfrom error");
+            perror("select error");
             exit(0);
         }
-        else
-        {
-            //ROS_INFO("RECV SiZE: %d", Recv_Size);
 
+        if(FD_ISSET(sock, &readfds))
+        {
+            Recv_Size = recvfrom(sock, Buffer_recv, PACKET_SIZE, MSG_WAITALL, (struct sockaddr *)&FromClient, (socklen_t*) &rx_addr_len);
+            ROS_INFO("PORT 3003 Recv Size: %d", Recv_Size);
             Parser();
         }
 
+        if(FD_ISSET(nmea_sock, &readfds))
+        {
+            Recv_Size = recvfrom(nmea_sock, Buffer_recv, PACKET_SIZE, MSG_WAITALL, (struct sockaddr *)&FromClient, (socklen_t*) &rx_addr_len);
+            ROS_INFO("PORT 3002 Recv Size: %d", Recv_Size);
+            Parser();
+        }
+        
+
+        // if(Recv_Size < 0)
+        // {
+        //     perror("recvfrom error");
+        //     exit(0);
+        // }
+        // else
+        // {
+        //     ROS_INFO("RECV SiZE: %d", Recv_Size);
+
+        //     Parser();
+        // }
+
     }
+}
+
+void UDP_receiver::NMEA_Parser()
+{
+    char NMEAbuf[200];
+    char *token;
+
+    memcpy(NMEAbuf, Buffer_recv, 200);
+    token = strtok(NMEAbuf, ",*"); //$GPRMC
+    ROS_INFO("%s", token); 
+    
+    token = strtok(NULL, ",*"); //utc
+    // memcpy(msg_GPRMC.utc, token, sizeof(token));
+    // msg_GPRMC.utc[sizeof(token)] = NULL;
+    msg_GPRMC.utc = token;
+    ROS_INFO("%s", msg_GPRMC.utc);
+
+    token = strtok(NULL, ",*"); //pos_status
+    msg_GPRMC.pos_status = token[0];
+    ROS_INFO("%c", msg_GPRMC.pos_status);
+
+    token = strtok(NULL, ",*"); //lat
+    // memcpy(msg_GPRMC.lat, token, sizeof(token));
+    // msg_GPRMC.lat[sizeof(token)] = NULL;
+    msg_GPRMC.lat = token;
+    ROS_INFO("%s", msg_GPRMC.lat);
+    
+    token = strtok(NULL, ",*"); //utc
+    // memcpy(msg_GPRMC.lat_dir, token, sizeof(token));
+    msg_GPRMC.lat_dir = token[0];
+    ROS_INFO("%c", msg_GPRMC.lat_dir);
+
+    token = strtok(NULL, ",*"); //lat
+    // memcpy(msg_GPRMC.lon, token, sizeof(token));
+    // msg_GPRMC.lon[sizeof(token)] = NULL;
+    msg_GPRMC.lon = token;
+    ROS_INFO("%s", msg_GPRMC.lon);
+    
+    token = strtok(NULL, ",*"); //utc
+    // memcpy(msg_GPRMC.lon_dir, token, sizeof(token));
+    msg_GPRMC.lon_dir = token[0];
+    ROS_INFO("%c", msg_GPRMC.lon_dir);
+
+    token = strtok(NULL, ",*"); //lat
+    // memcpy(msg_GPRMC.speed_kn, token, sizeof(token));
+    // msg_GPRMC.speed_kn[sizeof(token)] = NULL;
+    msg_GPRMC.speed_kn = token;
+    ROS_INFO("%s", msg_GPRMC.speed_kn);
+
+    token = strtok(NULL, ",*"); //lat
+    // memcpy(msg_GPRMC.track_true, token, sizeof(token));
+    // msg_GPRMC.track_true[sizeof(token)] = NULL;
+    msg_GPRMC.track_true = token;
+    ROS_INFO("%s", msg_GPRMC.track_true);
+
+    token = strtok(NULL, ",*"); //lat
+    // memcpy(msg_GPRMC.date, token, sizeof(token));
+    // msg_GPRMC.date[sizeof(token)] = NULL;
+    msg_GPRMC.date = token;
+    ROS_INFO("%s", msg_GPRMC.date);
+    
+    token = strtok(NULL, ",*"); //lat
+    // memcpy(msg_GPRMC.mag_var, token, sizeof(token));
+    // msg_GPRMC.mag_var[sizeof(token)] = NULL;
+    msg_GPRMC.mag_var = token;
+    ROS_INFO("%s", msg_GPRMC.mag_var);
+
+    token = strtok(NULL, ",*"); //lat
+    msg_GPRMC.var_dir = token[0];
+    ROS_INFO("%c", msg_GPRMC.var_dir);
+
+    token = strtok(NULL, ",*"); //lat
+    msg_GPRMC.mode_ind = token[0];
+    ROS_INFO("%c", msg_GPRMC.mode_ind);
+
+    msg_GPRMC.d_utc = atof(msg_GPRMC.utc);
+    msg_GPRMC.d_lat = atof(msg_GPRMC.lat);
+    msg_GPRMC.d_lon = atof(msg_GPRMC.lon);
+    msg_GPRMC.d_speed_kn = atof(msg_GPRMC.speed_kn);
+    msg_GPRMC.d_track_true = atof(msg_GPRMC.track_true);
+
+    ROS_INFO("%lf", msg_GPRMC.d_utc);
+    ROS_INFO("%lf", msg_GPRMC.d_lat);
+    ROS_INFO("%lf", msg_GPRMC.d_lon);
+    ROS_INFO("%lf", msg_GPRMC.d_speed_kn);
+    ROS_INFO("%lf", msg_GPRMC.d_track_true);
 }
 
 void UDP_receiver::Parser()
 {
     uint16_t temp_id;
     
-    if(Bufffer_recv[0] == 0x24) //for NMEA
+    ROS_INFO("%x", Buffer_recv[0]);
+    if(Buffer_recv[0] == 0x24) //for NMEA
     {
-        std::string NMEAbuf;
-        size_t pos = 0;
-        std::string delim = ",";
-        std::vector<string> words{};
-
-        NMEAbuf = (std::string)Buffer_recv;
-
-        while((pos = NMEAbuf.find(delim)) != string::npos)
-        {
-            words.push_back(NMEAbuf.substr(0, pos));
-            NMEAbuf.erase(0, pos + delim.length());
-        }
+        NMEA_Parser();
     }
     else
     {
