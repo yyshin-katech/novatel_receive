@@ -29,7 +29,7 @@
 #define NMEA_PORT 3002
 // #define UDP_IP "192.168.10.110"
 #define UDP_IP "192.168.1.195"
-#define PACKET_SIZE 1000
+#define PACKET_SIZE 400
 
 #define KNOT2KPH 1.85184
 
